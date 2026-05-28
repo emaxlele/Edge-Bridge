@@ -1,0 +1,46 @@
+name: Workflow Shell Usage Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  shell-check:
+    name: Check workflows for bash usage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fail if workflows use bash constructs without 'shell: bash'
+        run: |
+          set -euo pipefail
+          files=$(ls .github/workflows/*.yml || true)
+          if [ -z "$files" ]; then
+            echo "No workflow files to check"
+            exit 0
+          fi
+
+          fail=0
+          for f in $files; do
+            # Find lines that use bash-style 'for ...; do' constructs
+            while IFS= read -r match; do
+              lineno=${match%%:*}
+              line=${match#*:}
+              # Look back a few lines to find a 'shell: bash' declaration in the same step
+              start=$((lineno-8))
+              if [ $start -lt 1 ]; then start=1; fi
+              if ! sed -n "${start},${lineno}p" "$f" | grep -Eq 'shell:\s*bash'; then
+                echo "ERROR: $f contains bash-style line $lineno: $line"
+                echo "  Missing 'shell: bash' in the enclosing step (checked lines $start-$lineno)"
+                fail=1
+              fi
+            done < <(grep -nE 'for [^;]+; do' "$f" || true)
+          done
+
+          if [ "$fail" -eq 1 ]; then
+            echo "One or more workflow files use bash constructs without 'shell: bash'."
+            exit 1
+          fi
