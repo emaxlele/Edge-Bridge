@@ -113,16 +113,7 @@ jobs:
       - name: List artifacts
         run: ls -R release || true
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ needs.calculate-version.outputs.tag }}
-          name: ${{ needs.calculate-version.outputs.tag }}
-          prerelease: ${{ steps.determine.outputs.prerelease }}
-          body: ${{ needs.calculate-version.outputs.release_notes }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # (Release creation moved later, after VERSION/CHANGELOG step)
 
       - name: Ensure tag exists on remote
         env:
@@ -151,6 +142,61 @@ jobs:
           else
             echo "prerelease=true" >> $GITHUB_OUTPUT
             echo "Determined prerelease"
+          fi
+
+      - name: Prepare VERSION & CHANGELOG (stable only)
+        env:
+          TAG: ${{ needs.calculate-version.outputs.tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Preparing VERSION & CHANGELOG for tag: $TAG"
+          # Determine if stable: semver vX.Y.Z or explicit 'release' tag
+          if [[ "$TAG" != "release" && ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Not a stable release (tag $TAG). Skipping VERSION/CHANGELOG update."
+            exit 0
+          fi
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          if [[ "$TAG" == "release" ]]; then
+            VERSION=$(date -u +"%Y.%m.%d.%H%M%S")
+          else
+            VERSION=${TAG#v}
+          fi
+          echo "$VERSION" > VERSION
+
+          PREV_TAG=$(git tag --sort=-creatordate | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)
+          if [ -z "$PREV_TAG" ]; then
+            RANGE=""
+          else
+            RANGE="$PREV_TAG..HEAD"
+          fi
+          if [ -n "$RANGE" ]; then
+            COMMITS=$(git log --no-merges --pretty='- `%h` %s (%an)' $RANGE || true)
+          else
+            COMMITS=$(git log --no-merges --pretty='- `%h` %s (%an)' HEAD -n 50 || true)
+          fi
+          if [ -z "$COMMITS" ]; then COMMITS='- No new commits.'; fi
+
+          HEADER="## $VERSION - $(date -u +'%Y-%m-%d')"
+          if [ -f CHANGELOG.md ]; then
+            TMPFILE=$(mktemp)
+            echo -e "$HEADER\n\n$COMMITS\n\n" > $TMPFILE
+            cat CHANGELOG.md >> $TMPFILE
+            mv $TMPFILE CHANGELOG.md
+          else
+            echo -e "$HEADER\n\n$COMMITS\n" > CHANGELOG.md
+          fi
+
+          git add VERSION CHANGELOG.md || true
+          if git commit -m "chore(release): bump VERSION to $VERSION and update CHANGELOG"; then
+            git push origin HEAD:main
+            git tag -f "$TAG"
+            git push origin refs/tags/"$TAG" --force || true
+          else
+            echo "No changes to commit; skipping push/tag update."
           fi
 
       - name: Attach artifacts to release
