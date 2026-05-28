@@ -18,6 +18,8 @@ jobs:
         run: |
           set -euo pipefail
           files=$(ls .github/workflows/*.yml || true)
+          # Exclude this workflow file from the scan to avoid self-failure
+          files=$(echo "$files" | grep -v '/workflow-shell-check.yml' || true)
           if [ -z "$files" ]; then
             echo "No workflow files to check"
             exit 0
