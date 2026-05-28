@@ -53,6 +53,8 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Use bash on Windows runner so the shell for-loop syntax is valid
+        shell: bash
         run: |
           for f in build/**; do
             if [ -f "$f" ]; then

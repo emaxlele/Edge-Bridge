@@ -228,6 +228,8 @@ jobs:
         env:
           TAG: ${{ needs.calculate-version.outputs.tag }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Use bash shell to ensure for-loop syntax is supported on runners
+        shell: bash
         run: |
           set -e
           for f in release/*; do
