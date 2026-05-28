@@ -101,6 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -151,6 +152,7 @@ jobs:
           fi
 
       - name: Prepare VERSION & CHANGELOG (stable only)
+        id: prepare
         env:
           TAG: ${{ needs.calculate-version.outputs.tag }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -208,21 +210,35 @@ jobs:
 
       - name: Create PR with VERSION & CHANGELOG (stable only)
         if: steps.prepare.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore(release): bump VERSION to ${{ needs.calculate-version.outputs.tag }} and update CHANGELOG"
-          branch: "release/${{ needs.calculate-version.outputs.tag }}"
-          title: "Release: ${{ needs.calculate-version.outputs.tag }} (VERSION & CHANGELOG)"
-          body: |
-            This PR contains automatically generated VERSION and CHANGELOG updates for release ${{ needs.calculate-version.outputs.tag }}.
-          base: main
-          labels: release
+        env:
+          TAG: ${{ needs.calculate-version.outputs.tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          git commit -m "chore(release): bump VERSION to $TAG and update CHANGELOG"
+          git push origin HEAD:"release/$TAG"
+          gh pr create \
+            --title "Release: $TAG (VERSION & CHANGELOG)" \
+            --body "Automated VERSION and CHANGELOG updates for release $TAG." \
+            --base main \
+            --head "release/$TAG" \
+            --label release || true
 
-      - name: Attach artifacts to release
-        uses: softprops/turnstyle@v1
-        with:
-          timeout: 60
+      - name: Create GitHub Release
+        env:
+          TAG: ${{ needs.calculate-version.outputs.tag }}
+          PRERELEASE: ${{ steps.determine.outputs.prerelease }}
+          RELEASE_NOTES: ${{ needs.calculate-version.outputs.release_notes }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          PRERELEASE_FLAG=""
+          if [ "$PRERELEASE" = "true" ]; then PRERELEASE_FLAG="--prerelease"; fi
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes "$RELEASE_NOTES" \
+            $PRERELEASE_FLAG \
+            || true
 
       - name: Upload release assets
         env:
