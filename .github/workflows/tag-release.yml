@@ -55,10 +55,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          # Zip completo di tutti gli artifact
-          (cd build && zip -r ../EdgeBridge-windows.zip .)
+          # Crea zip con PowerShell (zip non disponibile su Windows runner)
+          powershell -Command "Compress-Archive -Path 'build' -DestinationPath 'EdgeBridge-windows.zip'"
           gh release upload "$TAG" "EdgeBridge-windows.zip" --clobber || true
-          # Ogni singolo .exe caricato individualmente (basename usato come nome asset)
+          # Carica ogni singolo exe individualmente
           find build -type f | while IFS= read -r f; do
             gh release upload "$TAG" "$f" --clobber || true
           done
