@@ -1,0 +1,61 @@
+name: Tag-based Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'release'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    name: Build artifacts and publish release for tag ${{ github.ref_name }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Run build script (Windows)
+        shell: cmd
+        run: |
+          call scripts\build.bat
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: edgebridge-windows
+          path: |
+            build\Edge\**\*
+            build\Wikipedia\**\*
+            build\bridge.exe
+          retention-days: 14
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          prerelease: false
+          body: "Automated release for tag ${{ github.ref_name }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release assets
+        env:
+          TAG: ${{ github.ref_name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for f in build/**; do
+            if [ -f "$f" ]; then
+              gh release upload "${TAG}" "$f" --clobber || true
+            fi
+          done
