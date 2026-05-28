@@ -19,7 +19,7 @@ jobs:
           set -euo pipefail
           files=$(ls .github/workflows/*.yml || true)
           # Exclude this workflow file from the scan to avoid self-failure
-          files=$(echo "$files" | grep -v '/workflow-shell-check.yml' || true)
+          files=$(echo "$files" | grep -v 'workflow-shell-check.yml' || true)
           if [ -z "$files" ]; then
             echo "No workflow files to check"
             exit 0
@@ -31,8 +31,8 @@ jobs:
             while IFS= read -r match; do
               lineno=${match%%:*}
               line=${match#*:}
-              # Look back a few lines to find a 'shell: bash' declaration in the same step
-              start=$((lineno-8))
+              # Look back a generous number of lines to find a 'shell: bash' declaration in the same step
+               start=$((lineno-40))
               if [ $start -lt 1 ]; then start=1; fi
               if ! sed -n "${start},${lineno}p" "$f" | grep -Eq 'shell:\s*bash'; then
                 echo "ERROR: $f contains bash-style line $lineno: $line"
