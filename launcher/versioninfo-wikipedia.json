@@ -1,0 +1,43 @@
+{
+	"FixedFileInfo": {
+		"FileVersion": {
+			"Major": 5,
+			"Minor": 2,
+			"Patch": 0,
+			"Build": 0
+		},
+		"ProductVersion": {
+			"Major": 5,
+			"Minor": 2,
+			"Patch": 0,
+			"Build": 0
+		},
+		"FileFlagsMask": "3f",
+		"FileFlags": "",
+		"FileOS": "040004",
+		"FileType": "01",
+		"FileSubType": "00"
+	},
+	"StringFileInfo": {
+		"Comments": "",
+		"CompanyName": "EdgeBridge",
+		"FileDescription": "EdgeBridge Launcher",
+		"FileVersion": "5.2.0.0",
+		"InternalName": "EdgeBridge",
+		"LegalCopyright": "",
+		"LegalTrademarks": "",
+		"OriginalFilename": "EdgeBridge.exe",
+		"PrivateBuild": "",
+		"ProductName": "EdgeBridge",
+		"ProductVersion": "5.2.0.0",
+		"SpecialBuild": ""
+	},
+	"VarFileInfo": {
+		"Translation": {
+			"LangID": "0409",
+			"CharsetID": "04B0"
+		}
+	},
+	"IconPath": "wikipedia.ico",
+	"ManifestPath": ""
+}

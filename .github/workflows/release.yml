@@ -1,0 +1,141 @@
+name: EdgeBridge Build & Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      build_windows:
+        description: 'Build Windows'
+        required: true
+        default: true
+        type: boolean
+      build_linux:
+        description: 'Build Linux (not implemented)'
+        required: true
+        default: false
+        type: boolean
+      force:
+        description: 'Force build (skip commit checks)'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: edgebridge-build
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  calculate-version:
+    name: Calculate Version
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.set_tag.outputs.tag }}
+      release_notes: ${{ steps.notes.outputs.release_notes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine tag (timestamp fallback)
+        id: set_tag
+        run: |
+          if [ -n "${{ github.event.inputs.publish_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.publish_tag }}" >> $GITHUB_OUTPUT
+          else
+            TAG=v$(date -u +'%Y%m%d%H%M%S')
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          PREV_TAG=$(git tag --sort=-creatordate | head -n 1 || true)
+          RANGE="${PREV_TAG}..HEAD"
+          COMMITS=$(git log --no-merges --pretty='- `%h` %s (%an)' $RANGE || true)
+          if [ -z "$COMMITS" ]; then
+            COMMITS='- No new commits.'
+          fi
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+          echo "EdgeBridge release: ${{ steps.set_tag.outputs.tag }}" >> $GITHUB_OUTPUT
+          echo >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  build-windows:
+    name: Build Windows
+    needs: calculate-version
+    if: needs.calculate-version.outputs.tag != '' && (github.event_name != 'workflow_dispatch' || github.event.inputs.build_windows == 'true')
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Run build script (Windows)
+        shell: cmd
+        run: |
+          call scripts\build.bat
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: edgebridge-windows
+          path: |
+            build\Edge\**\* 
+            build\Wikipedia\**\*
+            build\bridge.exe
+          retention-days: 14
+
+  publish-release:
+    name: Publish Release
+    needs: build-windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: edgebridge-windows
+          path: release
+
+      - name: List artifacts
+        run: ls -R release || true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.calculate-version.outputs.tag }}
+          name: ${{ needs.calculate-version.outputs.tag }}
+          prerelease: true
+          body: ${{ needs.calculate-version.outputs.release_notes }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attach artifacts to release
+        uses: softprops/turnstyle@v1
+        with:
+          timeout: 60
+
+      - name: Upload release assets
+        env:
+          TAG: ${{ needs.calculate-version.outputs.tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          for f in release/*; do
+            if [ -f "$f" ]; then
+              gh release upload "$TAG" "$f" --clobber || true
+            fi
+          done

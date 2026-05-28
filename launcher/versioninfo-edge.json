@@ -1,0 +1,43 @@
+{
+  "FixedFileInfo": {
+    "FileVersion": {
+      "Major": 6,
+      "Minor": 0,
+      "Patch": 0,
+      "Build": 0
+    },
+    "ProductVersion": {
+      "Major": 6,
+      "Minor": 0,
+      "Patch": 0,
+      "Build": 0
+    },
+    "FileFlagsMask": "3f",
+    "FileFlags": "",
+    "FileOS": "040004",
+    "FileType": "01",
+    "FileSubType": "00"
+  },
+  "StringFileInfo": {
+    "Comments": "",
+    "CompanyName": "EdgeBridge",
+    "FileDescription": "EdgeBridge - Clean Edge Launcher",
+    "FileVersion": "6.0.0.0",
+    "InternalName": "EdgeBridge",
+    "LegalCopyright": "",
+    "LegalTrademarks": "",
+    "OriginalFilename": "EdgeBridge.exe",
+    "PrivateBuild": "",
+    "ProductName": "EdgeBridge",
+    "ProductVersion": "6.0.0.0",
+    "SpecialBuild": ""
+  },
+  "VarFileInfo": {
+    "Translation": {
+      "LangID": "0409",
+      "CharsetID": "04B0"
+    }
+  },
+  "IconPath": "edge.ico",
+  "ManifestPath": ""
+}

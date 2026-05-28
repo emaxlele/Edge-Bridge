@@ -1,0 +1,20 @@
+{
+  "allowed_paths": [
+    "%USERPROFILE%\\Projects",
+    "%USERPROFILE%\\Documents",
+    "%USERPROFILE%\\Desktop"
+  ],
+  "blocked_commands": [
+    "format",
+    "del /s",
+    "rmdir /s",
+    "rd /s",
+    "shutdown",
+    "net user",
+    "reg delete",
+    "cipher /w"
+  ],
+  "max_file_size_mb": 10,
+  "command_timeout_seconds": 30,
+  "search_max_results": 50
+}
