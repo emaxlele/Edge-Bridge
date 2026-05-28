@@ -191,13 +191,27 @@ jobs:
           fi
 
           git add VERSION CHANGELOG.md || true
-          if git commit -m "chore(release): bump VERSION to $VERSION and update CHANGELOG"; then
-            git push origin HEAD:main
-            git tag -f "$TAG"
-            git push origin refs/tags/"$TAG" --force || true
+          # indicate if there are staged changes
+          if git diff --staged --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes to commit; skipping PR creation."
           else
-            echo "No changes to commit; skipping push/tag update."
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Files staged for commit; a PR will be opened."
           fi
+
+      - name: Create PR with VERSION & CHANGELOG (stable only)
+        if: steps.prepare.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(release): bump VERSION to ${{ needs.calculate-version.outputs.tag }} and update CHANGELOG"
+          branch: "release/${{ needs.calculate-version.outputs.tag }}"
+          title: "Release: ${{ needs.calculate-version.outputs.tag }} (VERSION & CHANGELOG)"
+          body: |
+            This PR contains automatically generated VERSION and CHANGELOG updates for release ${{ needs.calculate-version.outputs.tag }}.
+          base: main
+          labels: release
 
       - name: Attach artifacts to release
         uses: softprops/turnstyle@v1
