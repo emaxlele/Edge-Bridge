@@ -30,3 +30,8 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Local CI/tooling temp files
+.branch_protection.json
+.tmp_branch_protection.json
+*.tmp_branch_protection.json
