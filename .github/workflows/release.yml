@@ -123,6 +123,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Ensure tag exists on remote
+        env:
+          TAG: ${{ needs.calculate-version.outputs.tag }}
+        run: |
+          git --version
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          if git rev-parse --verify "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists locally"
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+          fi
+          # push tag to origin (force to ensure it exists)
+          git push origin "$TAG" --force || true
+
       - name: Attach artifacts to release
         uses: softprops/turnstyle@v1
         with:
