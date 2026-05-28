@@ -53,11 +53,12 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # Use bash on Windows runner so the shell for-loop syntax is valid
         shell: bash
         run: |
-          for f in build/**; do
-            if [ -f "$f" ]; then
-              gh release upload "${TAG}" "$f" --clobber || true
-            fi
+          # Zip completo di tutti gli artifact
+          (cd build && zip -r ../EdgeBridge-windows.zip .)
+          gh release upload "$TAG" "EdgeBridge-windows.zip" --clobber || true
+          # Ogni singolo .exe caricato individualmente (basename usato come nome asset)
+          find build -type f | while IFS= read -r f; do
+            gh release upload "$TAG" "$f" --clobber || true
           done

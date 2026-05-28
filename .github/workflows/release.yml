@@ -244,12 +244,13 @@ jobs:
         env:
           TAG: ${{ needs.calculate-version.outputs.tag }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # Use bash shell to ensure for-loop syntax is supported on runners
         shell: bash
         run: |
           set -e
-          for f in release/*; do
-            if [ -f "$f" ]; then
-              gh release upload "$TAG" "$f" --clobber || true
-            fi
+          # Zip completo di tutti gli artifact
+          (cd release && zip -r ../EdgeBridge-windows.zip .)
+          gh release upload "$TAG" "EdgeBridge-windows.zip" --clobber || true
+          # Ogni singolo .exe caricato individualmente (basename usato come nome asset)
+          find release -type f | while IFS= read -r f; do
+            gh release upload "$TAG" "$f" --clobber || true
           done
