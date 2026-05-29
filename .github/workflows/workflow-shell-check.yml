@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   shell-check:
     name: Check workflows for bash usage
@@ -14,8 +17,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fail if workflows use bash constructs without 'shell: bash'
-        # This script uses bash-specific features (process substitution); ensure bash is used
+      - name: "Check workflows for bash constructs missing shell: bash"
+        # Uses bash-specific features (process substitution); must run under bash
         shell: bash
         run: |
           set -euo pipefail
