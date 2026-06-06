@@ -14,6 +14,11 @@ import (
 	"strings"
 )
 
+const (
+    windowWidth  = 1080
+    windowHeight = 900
+)
+
 //go:embed all:assets
 var assets embed.FS
 
@@ -180,6 +185,7 @@ func main() {
 	}
 
 	args := []string{
+		"--window-size=" + fmt.Sprintf("%d,%d", windowWidth, windowHeight),
 		"--user-data-dir=" + appDir,
 		"--disable-component-extensions-with-background-pages",
 		"--disable-background-networking",
